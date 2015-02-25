@@ -1,3 +1,5 @@
 package HibernateEntityGenerator.models
 
-case class TableInfo(name:String)
+case class ColumnInfo(name:String)
+
+case class TableInfo(name:String, columns: List[ColumnInfo])
