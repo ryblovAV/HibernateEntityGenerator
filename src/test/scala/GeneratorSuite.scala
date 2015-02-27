@@ -9,11 +9,22 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
                                         dataLength = 10,
                                         defaultValue = null,
                                         isPrimary = true)
+  
+  val languageCdColumn = Column.stringColumn(name = "LANGUAGE_CD",
+                                       dataType = "CHAR",
+                                       dataLength = 3,
+                                       defaultValue = null)
 
   val envIdColumn = Column.numberColumn(name = "ENV_ID",
                                         dataLength = 22,
                                         dataPrecision = 6,
                                         dataScale = 0,
+                                        defaultValue = null)
+
+  val totToBillAmt = Column.numberColumn(name = "TOT_TO_BILL_AMT",
+                                        dataLength = 22,
+                                        dataPrecision = 15,
+                                        dataScale = 2,
                                         defaultValue = null)
 
   val addressColumn = Column.stringColumn(name = "ADDRESS1",
@@ -85,14 +96,9 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
 
   describe("build field annotation") {
 
-    it("check field name") {
-      val name = FieldBuilder.buildFieldName("PER_ID")
-      name should be("perId")
-    }
-
     it("build string field annotation(char)") {
-      val s = FieldBuilder.buildFieldAnnotation(perIdColumn)
-      s should be(s"""@Column(name = "PER_ID", columnDefinition = "char", length = 10)""")
+      val s = FieldBuilder.buildFieldAnnotation(languageCdColumn)
+      s should be(s"""@Column(name = "LANGUAGE_CD", columnDefinition = "char", length = 3)""")
     }
 
     it("build string field annotation(varchar2)") {
@@ -111,6 +117,44 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
       s should be(s"""|@Column(name = "EFFDT")
                       |@Temporal(TemporalType.TIMESTAMP)""".stripMargin)
     }
+
+  }
+
+  describe("build java field") {
+    it("check field name") {
+      val name = FieldBuilder.buildFieldName("PER_ID")
+      name should be("perId")
+    }
+
+    def addDefV(column: Column) = column.copy(defaultValue = Some("0"))
+
+    it("check int java") {
+      FieldBuilder.buildFieldJavaCode(envIdColumn) should be ("public int envId;")
+      FieldBuilder.buildFieldJavaCode(addDefV(envIdColumn)) should be ("public int envId = 0;")
+    }
+
+    it("check double java") {
+      FieldBuilder.buildFieldJavaCode(totToBillAmt) should be ("public double totToBillAmt;")
+      FieldBuilder.buildFieldJavaCode(addDefV(totToBillAmt)) should be ("public double totToBillAmt = 0;")
+    }
+
+    it("check string (varchar2) java") {
+      FieldBuilder.buildFieldJavaCode(addressColumn) should be ("public String address1;")
+      FieldBuilder.buildFieldJavaCode(addDefV(addressColumn)) should be (s"""public String address1 = "0";""")
+    }
+
+    it("check string (char) java") {
+      FieldBuilder.buildFieldJavaCode(languageCdColumn) should be ("public String languageCd;")
+      FieldBuilder.buildFieldJavaCode(addDefV(languageCdColumn)) should be (s"""public String languageCd = "0";""")
+    }
+
+    it("check date (char) java") {
+      val s = FieldBuilder.buildFieldJavaCode(effDtColumn)
+      s should be ("public Date effdt;")
+    }
+
+
+
 
   }
 

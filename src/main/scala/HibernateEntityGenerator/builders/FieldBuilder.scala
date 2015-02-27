@@ -9,8 +9,6 @@ object FieldBuilder {
 
     def buildColumnDefinition(dataType: String) = if (dataType == "CHAR") s""", columnDefinition = "char"""" else ""
 
-
-
     def buildLength(column: Column) = column.dataLength match {
       case Some(n) if column.dataType == "CHAR" || column.dataType == "VARCHAR2" => s", length = $n"
       case _ => ""
@@ -28,33 +26,40 @@ object FieldBuilder {
 
   def buildFieldName(columnName: String) = EntityBuilder.transformToCamelCase(columnName)
 
-//  def buildFieldAnottation(column: Column) = column match {
-//    case Column(_, "NUMBER", defaultValue, dataLength, _, 0, isPrimary) =>
-//
-//
-//  }
-//
-//  def buildField(column: Column):FieldInfo = {
+  def buildFieldJavaCode(column: Column) = {
 
+    def buildFieldJavaCode(columnName: String, javaType: String, defaultValue: Option[String]) = {
 
+      def buildeDefaultValueJavaCode(javaType: String, defaultValue: Option[String]) = defaultValue match {
+        case Some(v) =>
+          javaType match {
+            case "String" => s""" = "$v""""
+            case ("int" | "double") => s" = $v"
+          }
+        case _ => ""
+      }
 
-/*
-    column match {
-      case Column(name, "NUMBER", _, _, 0, defaultValue, isPrimary) =>
-        createFieldInfo(name, "int", defaultValue, defineAnnotationForColumn, isPrimary)
-      case ColumnInfo(name, "NUMBER", _, _, _, defaultValue, isPrimary) =>
-        createFieldInfo(name, "int", defaultValue, defineAnnotationForColumn, isPrimary)
-      case ColumnInfo(name, "VARCHAR2", dataLength, _, _, defaultValue, isPrimary) =>
-        createFieldInfo(name, "String", defaultValue, defineAnnotationForVarcharColumn(dataLength), isPrimary)
-      case ColumnInfo(name, "CHAR", dataLength, _, _, defaultValue, isPrimary) =>
-        createFieldInfo(name, "String", defaultValue, defineAnnotationForCharColumn(dataLength), isPrimary)
-      case ColumnInfo(name, "DATE", _, _, _, defaultValue, isPrimary) =>
-        createFieldInfo(name, "Date", defaultValue, defineAnnotationForDateColumn, isPrimary)
-      case _ => FieldInfo(column.name, column.dataType, column.defaultValue, "????????", false)
+      s"public $javaType ${buildFieldName(columnName)}${buildeDefaultValueJavaCode(javaType, defaultValue)};"
     }
-*/
 
-//    FieldInfo(EntityBuilder.transformToCamelCase(column.name),column)
-//  }
+    column match {
+      case Column(name, "NUMBER", defaultValue, _, _, Some(0), _) =>
+        buildFieldJavaCode(name, "int", defaultValue)
+      case Column(name, "NUMBER", defaultValue, _, _, _, _) =>
+        buildFieldJavaCode(name, "double", defaultValue)
+      case Column(name, "VARCHAR2", defaultValue, dataLength, _, _, _) =>
+        buildFieldJavaCode(name, "String", defaultValue)
+      case Column(name, "CHAR", defaultValue, _, _, _, _) =>
+        buildFieldJavaCode(name, "String", defaultValue)
+      case Column(name, "DATE", defaultValue, _, _, _, _) =>
+        buildFieldJavaCode(name, "Date", defaultValue)
+    }
+  }
+
+  def buildField(column: Column) = {
+    s"""|${buildFieldAnnotation(column)}
+        |${buildFieldJavaCode(column)}
+     """.stripMargin
+  }
 
 }
