@@ -1,6 +1,6 @@
 package HibernateEntityGenerator.builders
 
-import HibernateEntityGenerator.models.{Column, EntityInfo, TableInfo}
+import HibernateEntityGenerator.models.{Column, TableInfo}
 
 import scala.util.matching.Regex
 
@@ -22,10 +22,6 @@ object EntityBuilder {
     }
   }
 
-  def build(table:TableInfo):EntityInfo = {
-    EntityInfo(transformEntityName(table.name),table,List.empty)
-  }
-
   def addSeparator(str: String):String = if (str.length > 0) ", " else ""
 
   def buildJoinColumnBlock(pKeys: List[Column]) = {
@@ -42,20 +38,20 @@ object EntityBuilder {
     s"joinColumns = $str"
   }
 
-  def buildEmbeddableCollection(entity: EntityInfo) =
-    s"public Set<${entity.name.capitalize}> ${entity.name}Set = new HashSet<>();"
+  def buildEmbeddableCollection(table: TableInfo) =
+    s"public Set<${transformEntityName(table.name).capitalize}> ${transformEntityName(table.name)}Set = new HashSet<>();"
 
   def buildEmbeddableCollectionA(table: TableInfo)  =
     s"""|@ElementCollection
         |@CollectionTable(name = "${table.name}", schema = "${table.owner}", ${buildJoinColumnBlock(table.pKeys)})""".stripMargin
 
-  def buildEmbeddableBlock(entity: EntityInfo) =
-    s"""|${buildEmbeddableCollectionA(entity.table)}
-        |${buildEmbeddableCollection(entity)}
+  def buildEmbeddableBlock(table: TableInfo) =
+    s"""|${buildEmbeddableCollectionA(table)}
+        |${buildEmbeddableCollection(table)}
      """.stripMargin
 
-  def buildEmbeddableCollectionBlock(embeddableEntities: List[EntityInfo]) =
-    embeddableEntities.foldLeft[String]("")((str, e) => s"str + ${buildEmbeddableBlock(e)}")
+  def buildEmbeddableCollectionBlock(embeddableTables: List[TableInfo]) =
+    embeddableTables.foldLeft[String]("")((str, e) => s"str + ${buildEmbeddableBlock(e)}")
 
 
 }

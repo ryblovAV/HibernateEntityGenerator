@@ -1,6 +1,6 @@
 package HibernateEntityGenerator.builders
 
-import HibernateEntityGenerator.models.{FieldInfo, Column}
+import HibernateEntityGenerator.models.Column
 
 
 object FieldBuilder {
@@ -47,9 +47,7 @@ object FieldBuilder {
         buildFieldJavaCode(name, "int", defaultValue)
       case Column(name, "NUMBER", defaultValue, _, _, _, _) =>
         buildFieldJavaCode(name, "double", defaultValue)
-      case Column(name, "VARCHAR2", defaultValue, dataLength, _, _, _) =>
-        buildFieldJavaCode(name, "String", defaultValue)
-      case Column(name, "CHAR", defaultValue, _, _, _, _) =>
+      case Column(name, "VARCHAR2" | "CHAR", defaultValue, _, _, _, _) =>
         buildFieldJavaCode(name, "String", defaultValue)
       case Column(name, "DATE", defaultValue, _, _, _, _) =>
         buildFieldJavaCode(name, "Date", defaultValue)

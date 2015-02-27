@@ -1,4 +1,4 @@
-import HibernateEntityGenerator.builders.{FieldBuilder, EntityBuilder}
+import HibernateEntityGenerator.builders.{MethodBuilder, FieldBuilder, EntityBuilder}
 import HibernateEntityGenerator.models._
 import org.scalatest.{FunSpec, ShouldMatchers, FunSuite}
 
@@ -42,7 +42,6 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
   val pKeys = List(perIdColumn)
 
   val embeddableTable = TableInfo("CI_PER_NAME", "STGADM", columns, pKeys)
-  val embeddableEntity = EntityInfo("perNameEntity", embeddableTable, List.empty)
 
   val embeddableTables = List(embeddableTable,
                               TableInfo("CI_PER_ID","STGADM",columns,pKeys),
@@ -54,8 +53,7 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
   }
 
   describe("define entity name") {
-    val entity = EntityBuilder.build(table)
-    entity.name should be ("perEntity")
+    EntityBuilder.transformEntityName("CI_PER") should be ("perEntity")
   }
 
   describe("create table with not primaryKey") {
@@ -81,7 +79,7 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
     }
 
     it("embeddable collection") {
-      val s = EntityBuilder.buildEmbeddableCollection(embeddableEntity)
+      val s = EntityBuilder.buildEmbeddableCollection(embeddableTable)
       s should be("public Set<PerNameEntity> perNameEntitySet = new HashSet<>();")
 
     }
@@ -152,10 +150,38 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
       val s = FieldBuilder.buildFieldJavaCode(effDtColumn)
       s should be ("public Date effdt;")
     }
-
-
-
-
   }
+
+  describe("create methods") {
+    it("equal for one field") {
+      val s = MethodBuilder.createEqualRowWithoutCheck(perIdColumn)
+      s should be (s"""|  if (!this.perId.equals(other.perId)) {
+                       |    return false;
+                       |  }""".stripMargin)
+    }
+    it("equal method") {
+      val s = MethodBuilder.buildEqualMethod(table)
+      info(s)
+      s should be (s"""|@Override
+                       |public boolean equals(Object object) {
+                       |
+                       |  if (this == object)
+                       |    return true;
+                       |
+                       |  if (!(object instanceof PerEntity))
+                       |    return false;
+                       |
+                       |  PerEntity other = (PerEntity) object;
+                       |
+                       |  if (!this.perId.equals(other.perId)) {
+                       |    return false;
+                       |  }
+                       |
+                       |  return true;
+                       |}""".stripMargin)
+    }
+  }
+
+
 
 }
