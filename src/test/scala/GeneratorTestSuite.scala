@@ -1,8 +1,8 @@
-import HibernateEntityGenerator.builders.{MethodBuilder, FieldBuilder, EntityBuilder}
+import HibernateEntityGenerator.builders.{RelationBuilder, MethodBuilder, FieldBuilder, EntityBuilder}
 import HibernateEntityGenerator.models._
 import org.scalatest.{FunSpec, ShouldMatchers, FunSuite}
 
-class GeneratorSuite extends FunSpec with ShouldMatchers {
+class GeneratorTestSuite extends FunSpec with ShouldMatchers {
 
   val perIdColumn = Column.stringColumn(name = "PER_ID",
                                         dataType = "CHAR",
@@ -41,12 +41,13 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
 
   val pKeys = List(perIdColumn)
 
-  val embeddableTable = TableInfo("CI_PER_NAME", "STGADM", columns, pKeys)
+  val embeddableTable = Table("CI_PER_NAME", "STGADM", columns, pKeys)
 
   val embeddableTables = List(embeddableTable,
-                              TableInfo("CI_PER_ID","STGADM",columns,pKeys),
-                              TableInfo("CI_PER_K","STGADM",columns,pKeys))
-  val table = TableInfo("CI_PER","STGADM",columns,pKeys,embeddableTables)
+                              Table("CI_PER_ID","STGADM",columns,pKeys),
+                              Table("CI_PER_K","STGADM",columns,pKeys))
+
+  val table = Table("CI_PER","STGADM",columns,pKeys,embeddableTables,false,true)
 
   describe("Create TableInfo") {
     table.name should be ("CI_PER")
@@ -57,17 +58,33 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
   }
 
   describe("create table with not primaryKey") {
-    an [IllegalArgumentException] should be thrownBy { TableInfo("name","owner",columns,List.empty,List.empty) }
+    an [IllegalArgumentException] should be thrownBy { Table("name","owner",columns,List.empty,List.empty, false, false) }
   }
 
   describe("create table with not columns") {
-    an [IllegalArgumentException] should be thrownBy { TableInfo("name","owner",List.empty,pKeys,List.empty) }
+    an [IllegalArgumentException] should be thrownBy { Table("name","owner",List.empty,pKeys,List.empty, false, false) }
   }
 
-  describe("create block") {
+  describe("create head class") {
+    it("embeddable") {
+      val s = EntityBuilder.buildClass("CI_PER_CHAR","STGADM",true)
+      s should be (s"""|@Embeddable
+                       |public class PerCharEntity""".stripMargin)
+    }
+
+    it("entity") {
+      val s = EntityBuilder.buildClass("CI_PER","STGADM",false)
+      s should be (s"""|@Entity
+                       |@Table(name = "CI_PER", schema = "STGADM")
+                       |public class PerEntity""".stripMargin)
+    }
+
+  }
+
+  describe("Join column") {
+
     it("join one column") {
       val s = EntityBuilder.buildJoinColumnBlock(pKeys)
-      //      embeddableTable(s)
       s should be( s"""joinColumns = @JoinColumn(name = "PER_ID")""")
     }
 
@@ -78,6 +95,9 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
       s should be( s"""joinColumns = {@JoinColumn(name = "PER_ID"), @JoinColumn(name = "ENV_ID")}""")
     }
 
+  }
+
+  describe("create block") {
     it("embeddable collection") {
       val s = EntityBuilder.buildEmbeddableCollection(embeddableTable)
       s should be("public Set<PerNameEntity> perNameEntitySet = new HashSet<>();")
@@ -86,7 +106,6 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
 
     it("embeddable collection annotation") {
       val s = EntityBuilder.buildEmbeddableCollectionA(embeddableTable)
-      info(s)
       s should be(s"""|@ElementCollection
                       |@CollectionTable(name = "CI_PER_NAME", schema = "STGADM", joinColumns = @JoinColumn(name = "PER_ID"))""".stripMargin)
     }
@@ -111,7 +130,6 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
 
     it("build date field annotation") {
       val s = FieldBuilder.buildFieldAnnotation(effDtColumn)
-      info(s)
       s should be(s"""|@Column(name = "EFFDT")
                       |@Temporal(TemporalType.TIMESTAMP)""".stripMargin)
     }
@@ -154,14 +172,14 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
 
   describe("create methods") {
     it("equal for one field") {
-      val s = MethodBuilder.createEqualRowWithoutCheck(perIdColumn)
+      val s = MethodBuilder.createEqualRow("perId","CHAR")
       s should be (s"""|  if (!this.perId.equals(other.perId)) {
                        |    return false;
                        |  }""".stripMargin)
     }
+
     it("equal method") {
-      val s = MethodBuilder.buildEqualMethod(table)
-      info(s)
+      val s = MethodBuilder.buildEqualMethod("CI_PER",pKeys)
       s should be (s"""|@Override
                        |public boolean equals(Object object) {
                        |
@@ -180,6 +198,36 @@ class GeneratorSuite extends FunSpec with ShouldMatchers {
                        |  return true;
                        |}""".stripMargin)
     }
+
+    it("hashCode method(one primaryKeys)") {
+      val s = MethodBuilder.buildHashCodeMethod(pKeys)
+      s should be (s"""|@Override
+                       |public int hashCode() {
+                       |  int hash = 0;
+                       |  hash = 31 * hash + perId.hashCode();
+                       |
+                       |  return hash;
+                       |}""".stripMargin)
+    }
+
+    it("hashCode method(many primaryKeys)") {
+      val s = MethodBuilder.buildHashCodeMethod(pKeys:+envIdColumn)
+      s should be (s"""|@Override
+                       |public int hashCode() {
+                       |  int hash = 0;
+                       |  hash = 31 * hash + perId.hashCode();
+                       |  hash = 31 * hash + envId;
+                       |
+                       |  return hash;
+                       |}""".stripMargin)
+    }
+
+
+
+
+
+
+
   }
 
 

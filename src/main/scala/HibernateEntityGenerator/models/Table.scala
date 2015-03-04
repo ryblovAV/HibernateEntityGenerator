@@ -55,27 +55,31 @@ case object Column {
   }
 }
 
+case class Relation(joinTable: String, columnNames: List[String])
 
-
-case class TableInfo(name: String, 
-                     owner: String, 
-                     columns: List[Column],
-                     pKeys: List[Column],
-                     embeddableTables: List[TableInfo]) {
-  require(!pKeys.isEmpty)
+case class Table(name: String,
+                 owner: String,
+                 columns: List[Column],
+                 pKeys: List[Column],
+                 embeddableTables: List[Table],
+                 isEmbeddable: Boolean,
+                 isWithKey: Boolean) {
+  require((!pKeys.isEmpty) || isEmbeddable)
   require(!columns.isEmpty)
 }
 
-object TableInfo {
+object Table {
 
   def apply(name: String,
             owner: String,
             columns: List[Column],
-            pKeys: List[Column]):TableInfo =
-    TableInfo(name = name,
+            pKeys: List[Column]):Table =
+    Table(name = name,
       owner = owner,
       columns = columns,
       pKeys = pKeys,
-      embeddableTables = List.empty)
+      embeddableTables = List.empty,
+      isEmbeddable = false,
+      isWithKey = false)
 
 }

@@ -1,28 +1,28 @@
 package HibernateEntityGenerator.builders
 
-import HibernateEntityGenerator.models.{TableInfo, Column}
+import HibernateEntityGenerator.models.{Table$, Column}
 
 object MethodBuilder {
 
-  def createEqualRowWithoutCheck(column:Column) = column match {
-      case Column(name, "NUMBER" , _, _, _, _, _) =>
-        s"""|  if (this.${FieldBuilder.buildFieldName(name)} != other.${FieldBuilder.buildFieldName(name)}) {
+  def createEqualRow(fieldName:String, dbType:String) = dbType match {
+      case "NUMBER" =>
+        s"""|  if (this.$fieldName != other.$fieldName) {
             |    return false;
             |  }""".stripMargin
-      case Column(name, _, _, _, _, _, _) =>
-        s"""|  if (!this.${FieldBuilder.buildFieldName(name)}.equals(other.${FieldBuilder.buildFieldName(name)})) {
+      case _ =>
+        s"""|  if (!this.$fieldName.equals(other.$fieldName)) {
             |    return false;
             |  }""".stripMargin
   }
 
-  def buildEqualMethod(table: TableInfo) = {
+  def buildEqualMethod(tableName: String, pKeys: List[Column]) = {
 
-    val s = table.pKeys.foldLeft[String]("")(
-      (str, column) => str + s"""|${createEqualRowWithoutCheck(column)}
+    val s = pKeys.foldLeft[String]("")(
+      (str, column) => str + s"""|${createEqualRow(FieldBuilder.buildFieldName(column.name),column.dataType)}
                                  |""".stripMargin
     )
 
-    val entityName = EntityBuilder.transformEntityName(table.name).capitalize
+    val entityName = EntityBuilder.transformEntityName(tableName).capitalize
 
     s"""|@Override
         |public boolean equals(Object object) {
@@ -40,5 +40,41 @@ object MethodBuilder {
         |}""".stripMargin
 
   }
+
+  def buildHashCodeMethod(pKeys: List[Column]) = {
+
+    def getCalcHashRow(fieldName: String, dbType:String):String = {
+      dbType match {
+        case "NUMBER" =>
+          s"${fieldName};"
+        case _ =>
+          s"${fieldName}.hashCode();"
+      }
+    }
+
+    val fieldBlock = pKeys.foldLeft[String]("")(
+      (str, c) => str + s"""|  hash = 31 * hash + ${getCalcHashRow(FieldBuilder.buildFieldName(c.name),c.dataType)}
+          |""".stripMargin
+    )
+
+    s"""|@Override
+        |public int hashCode() {
+        |  int hash = 0;
+        |$fieldBlock
+        |  return hash;
+        |}""".stripMargin
+  }
+
+  def createConstructorWithEnvId(tableName: String) = {
+    s"""|  public ${EntityBuilder.transformEntityName(tableName).capitalize}(int envId) {
+        |    ${EntityBuilder.getEntity(tableName)}KEntitySet.add(new ${EntityBuilder.getEntity(tableName).capitalize}KEntity(envId));
+        |  }""".stripMargin
+  }
+
+  def createConstructor(tableName: String) = {
+    s"""|  public ${EntityBuilder.transformEntityName(tableName).capitalize}() {
+        |  }""".stripMargin
+  }
+
 
 }

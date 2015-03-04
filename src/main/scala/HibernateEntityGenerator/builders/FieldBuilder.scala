@@ -54,7 +54,7 @@ object FieldBuilder {
     }
   }
 
-  def buildField(column: Column) = {
+  def buildFieldCode(column: Column) = {
     s"""|${buildFieldAnnotation(column)}
         |${buildFieldJavaCode(column)}
      """.stripMargin
