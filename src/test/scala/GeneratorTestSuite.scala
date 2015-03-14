@@ -8,7 +8,7 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
                                         dataType = "CHAR",
                                         dataLength = 10,
                                         defaultValue = null,
-                                        isPrimary = true)
+                                        pkPosition = Some(1))
   
   val languageCdColumn = Column.stringColumn(name = "LANGUAGE_CD",
                                        dataType = "CHAR",
@@ -41,13 +41,13 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
 
   val pKeys = List(perIdColumn)
 
-  val embeddableTable = Table("CI_PER_NAME", "STGADM", columns, pKeys)
+  val embeddableTable = Table.createTable("CI_PER_NAME", "STGADM", columns, pKeys)
 
   val embeddableTables = List(embeddableTable,
-                              Table("CI_PER_ID","STGADM",columns,pKeys),
-                              Table("CI_PER_K","STGADM",columns,pKeys))
+                              Table.createEmbeddableTable("CI_PER_ID","STGADM",columns,pKeys),
+                              Table.createEmbeddableTable("CI_PER_K","STGADM",columns,pKeys))
 
-  val table = Table("CI_PER","STGADM",columns,pKeys,embeddableTables,false,true)
+  val table = Table("CI_PER","STGADM",0,columns,pKeys,embeddableTables.map(_.name))
 
   describe("Create TableInfo") {
     table.name should be ("CI_PER")
@@ -57,12 +57,12 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
     EntityBuilder.transformEntityName("CI_PER") should be ("perEntity")
   }
 
-  describe("create table with not primaryKey") {
-    an [IllegalArgumentException] should be thrownBy { Table("name","owner",columns,List.empty,List.empty, false, false) }
+  ignore("create table with not primaryKey") {
+    an [IllegalArgumentException] should be thrownBy { Table("name","owner",0,columns,List.empty,List.empty) }
   }
 
-  describe("create table with not columns") {
-    an [IllegalArgumentException] should be thrownBy { Table("name","owner",List.empty,pKeys,List.empty, false, false) }
+  ignore("create table with not columns") {
+    an [IllegalArgumentException] should be thrownBy { Table("name","owner",0,List.empty,pKeys,List.empty) }
   }
 
   describe("create head class") {
@@ -84,13 +84,13 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
   describe("Join column") {
 
     it("join one column") {
-      val s = EntityBuilder.buildJoinColumnBlock(pKeys)
+      val s = EntityBuilder.buildJoinColumnBlock(pKeys.map(_.name))
       s should be( s"""joinColumns = @JoinColumn(name = "PER_ID")""")
     }
 
     it("join many columns") {
       val pKeys = List(perIdColumn, envIdColumn)
-      val s = EntityBuilder.buildJoinColumnBlock(pKeys)
+      val s = EntityBuilder.buildJoinColumnBlock(pKeys.map(_.name))
       //      embeddableTable(s)
       s should be( s"""joinColumns = {@JoinColumn(name = "PER_ID"), @JoinColumn(name = "ENV_ID")}""")
     }
@@ -99,15 +99,15 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
 
   describe("create block") {
     it("embeddable collection") {
-      val s = EntityBuilder.buildEmbeddableCollection(embeddableTable)
-      s should be("public Set<PerNameEntity> perNameEntitySet = new HashSet<>();")
+      val s = EntityBuilder.buildEmbeddableCollection(embeddableTable.name)
+      s should be("  public Set<PerNameEntity> perNameEntitySet = new HashSet<>();")
 
     }
 
     it("embeddable collection annotation") {
-      val s = EntityBuilder.buildEmbeddableCollectionA(embeddableTable)
-      s should be(s"""|@ElementCollection
-                      |@CollectionTable(name = "CI_PER_NAME", schema = "STGADM", joinColumns = @JoinColumn(name = "PER_ID"))""".stripMargin)
+      val s = EntityBuilder.buildEmbeddableCollectionA(owner = "STGADM", tableName = "CI_PER_NAME", pkColumnName = "PER_ID")
+      s should be(s"""|  @ElementCollection
+                      |  @CollectionTable(name = "CI_PER_NAME", schema = "STGADM", joinColumns = @JoinColumn(name = "PER_ID"))""".stripMargin)
     }
   }
 
@@ -120,6 +120,7 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
 
     it("build string field annotation(varchar2)") {
       val s = FieldBuilder.buildFieldAnnotation(addressColumn)
+      info(s"address: ${addressColumn.dataLength}")
       s should be(s"""@Column(name = "ADDRESS1", length = 254)""")
     }
 
@@ -131,7 +132,7 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
     it("build date field annotation") {
       val s = FieldBuilder.buildFieldAnnotation(effDtColumn)
       s should be(s"""|@Column(name = "EFFDT")
-                      |@Temporal(TemporalType.TIMESTAMP)""".stripMargin)
+                      |  @Temporal(TemporalType.TIMESTAMP)""".stripMargin)
     }
 
   }
@@ -173,63 +174,54 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
   describe("create methods") {
     it("equal for one field") {
       val s = MethodBuilder.createEqualRow("perId","CHAR")
-      s should be (s"""|  if (!this.perId.equals(other.perId)) {
-                       |    return false;
-                       |  }""".stripMargin)
+      s should be (s"""|    if (!this.perId.equals(other.perId)) {
+                       |      return false;
+                       |    }""".stripMargin)
     }
 
     it("equal method") {
       val s = MethodBuilder.buildEqualMethod("CI_PER",pKeys)
-      s should be (s"""|@Override
-                       |public boolean equals(Object object) {
+      s should be (s"""|  @Override
+                       |  public boolean equals(Object object) {
                        |
-                       |  if (this == object)
+                       |    if (this == object)
+                       |      return true;
+                       |
+                       |    if (!(object instanceof PerEntity))
+                       |      return false;
+                       |
+                       |    PerEntity other = (PerEntity) object;
+                       |
+                       |    if (!this.perId.equals(other.perId)) {
+                       |      return false;
+                       |    }
                        |    return true;
-                       |
-                       |  if (!(object instanceof PerEntity))
-                       |    return false;
-                       |
-                       |  PerEntity other = (PerEntity) object;
-                       |
-                       |  if (!this.perId.equals(other.perId)) {
-                       |    return false;
-                       |  }
-                       |
-                       |  return true;
-                       |}""".stripMargin)
+                       |  }""".stripMargin)
     }
 
     it("hashCode method(one primaryKeys)") {
       val s = MethodBuilder.buildHashCodeMethod(pKeys)
-      s should be (s"""|@Override
-                       |public int hashCode() {
-                       |  int hash = 0;
-                       |  hash = 31 * hash + perId.hashCode();
+      s should be (s"""|  @Override
+                       |  public int hashCode() {
+                       |    int hash = 0;
+                       |    hash = 31 * hash + perId.hashCode();
                        |
-                       |  return hash;
-                       |}""".stripMargin)
+                       |    return hash;
+                       |  }""".stripMargin)
     }
 
     it("hashCode method(many primaryKeys)") {
       val s = MethodBuilder.buildHashCodeMethod(pKeys:+envIdColumn)
-      s should be (s"""|@Override
-                       |public int hashCode() {
-                       |  int hash = 0;
-                       |  hash = 31 * hash + perId.hashCode();
-                       |  hash = 31 * hash + envId;
+      s should be (s"""|  @Override
+                       |  public int hashCode() {
+                       |    int hash = 0;
+                       |    hash = 31 * hash + perId.hashCode();
+                       |    hash = 31 * hash + envId;
                        |
-                       |  return hash;
-                       |}""".stripMargin)
+                       |    return hash;
+                       |  }""".stripMargin)
     }
 
-
-
-
-
-
-
   }
-
-
 
 }

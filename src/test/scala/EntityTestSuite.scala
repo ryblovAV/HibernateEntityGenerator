@@ -4,8 +4,8 @@ import org.scalatest._
 
 class EntityTestSuite extends FunSpec with ShouldMatchers {
 
-  val acctId = Column.stringColumn(name = "ACCT_ID",dataType = "char",defaultValue = null,dataLength = 10,isPrimary = true)
-  val envId = Column.numberColumn(name = "ENV_ID", defaultValue = null, dataLength = 22,dataPrecision = 6,dataScale = 0,isPrimary = false)
+  val acctId = Column.stringColumn(name = "ACCT_ID",dataType = "char",defaultValue = null, dataLength = 10, pkPosition = Some(1))
+  val envId = Column.numberColumn(name = "ENV_ID", defaultValue = null, dataLength = 22,dataPrecision = 6,dataScale = 0,pkPosition = None)
 
   val columns = List(
     acctId
@@ -16,27 +16,17 @@ class EntityTestSuite extends FunSpec with ShouldMatchers {
   val acctK = Table(
     name = "CI_ACCT_K",
     owner = "STGADM",
+    embeddable = 1,
     columns = columns,
-    pKeys = List(),
-    embeddableTables = List(),
-    isEmbeddable = true,
-    isWithKey = false)
+    pkColumns = List(),
+    embeddedTables = List())
 
   val acct = Table(
     name = "CI_ACCT",
     owner = "STGADM",
+    embeddable = 0,
     columns = columns,
-    pKeys = pKeys,
-    embeddableTables = List(),
-    isEmbeddable = false,
-    isWithKey = true)
+    pkColumns = pKeys,
+    embeddedTables = List())
 
-
-  ignore("entity class"){
-    it("build class for entity"){
-      val s = EntityBuilder.build(acct)
-      info(s)
-      s should be ("YYY2")
-    }
-  }
 }

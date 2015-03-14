@@ -35,10 +35,10 @@ object EntityBuilder {
 
   }
 
-  def buildJoinColumnBlock(pKeys: List[Column]) = {
+  def buildJoinColumnBlock(pKeys: List[String]) = {
 
-    def buildOne(column: Column) =
-      s"""@JoinColumn(name = "${column.name}")"""
+    def buildOne(columnName: String) =
+      s"""@JoinColumn(name = "${columnName}")"""
 
     val str =
       if (pKeys.length == 1)
@@ -49,27 +49,46 @@ object EntityBuilder {
     s"joinColumns = $str"
   }
 
-  def buildEmbeddableCollection(table: Table) =
-    s"public Set<${transformEntityName(table.name).capitalize}> ${transformEntityName(table.name)}Set = new HashSet<>();"
+  def buildEmbeddableCollection(tableName: String) =
+    s"  public Set<${transformEntityName(tableName).capitalize}> ${transformEntityName(tableName)}Set = new HashSet<>();"
 
-  def buildEmbeddableCollectionA(table: Table)  =
-    s"""|@ElementCollection
-        |@CollectionTable(name = "${table.name}", schema = "${table.owner}", ${buildJoinColumnBlock(table.pKeys)})""".stripMargin
+  def buildEmbeddableCollectionA(owner: String, tableName: String, pkColumnName: String)  =
+    s"""|  @ElementCollection
+        |  @CollectionTable(name = "$tableName", schema = "$owner", ${buildJoinColumnBlock(List(pkColumnName))})""".stripMargin
 
-  def buildEmbeddableBlock(table: Table) =
-    s"""|${buildEmbeddableCollectionA(table)}
-        |${buildEmbeddableCollection(table)}
+  def buildEmbeddableBlock(owner: String, tableName: String, pkColumnName: String) =
+    s"""|${buildEmbeddableCollectionA(owner, tableName, pkColumnName)}
+        |${buildEmbeddableCollection(tableName)}
      """.stripMargin
 
-  def buildEmbeddableCollectionBlock(embeddableTables: List[Table]) =
-    embeddableTables.foldLeft[String]("")((str, e) => s"str + ${buildEmbeddableBlock(e)}")
+  def buildEmbeddableCollectionBlock(owner: String, embeddableTables: List[String], pkColumn: String) =
+    embeddableTables.foldLeft[String]("")((str, e) => s"$str\n${buildEmbeddableBlock(owner, e, pkColumn)}")
 
+  def buildImportBlock(packageName: String) =
+    s"""|import $packageName.*;
+        |
+        |import javax.persistence.*;
+        |import java.util.Date;
+        |import java.util.HashSet;
+        |import java.util.Set;""".stripMargin
 
-  def build(table: Table) = {
-    s"""|${EntityBuilder.buildClass(tableName = table.name, owner = table.owner, isEmbeddable = table.isEmbeddable)} {
+  //TODO correct table.pkColumns(0) (if count pkColumns != 1)
+  def build(table: Table, packageName: String) = {
+    s"""|package $packageName;
+        |
+        |${buildImportBlock(packageName)}
+        |
+        |${EntityBuilder.buildClass(tableName = table.name, owner = table.owner, isEmbeddable = table.embeddable == 1)} {
         |${MethodBuilder.createConstructor(tableName = table.name)}
         |${if (table.isWithKey) MethodBuilder.createConstructorWithEnvId(table.name) else ""}
-        |${buildEmbeddableCollectionBlock(table.embeddableTables)}
+        |${MethodBuilder.buildEqualMethod(table.name,table.pkColumns)}
+        |${MethodBuilder.buildHashCodeMethod(table.pkColumns)}
+        |${if (table.pkColumns.size == 1) buildEmbeddableCollectionBlock(table.owner, table.embeddedTables, table.pkColumns(0).name) else ""}
+        |${RelationBuilder.buildOneToManyAll(table.oneToMany)}
+        |${RelationBuilder.buildManyToOneAll(table.manyToOne)}
+        |${FieldBuilder.buildFieldCodeAll(table.pkColumns.sortBy(_.name))}
+        |${FieldBuilder.buildFieldCodeAll(table.columns.sortBy(_.name))}
+        |
         |}""".stripMargin
   }
 

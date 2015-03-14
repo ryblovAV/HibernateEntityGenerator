@@ -9,19 +9,26 @@ object FieldBuilder {
 
     def buildColumnDefinition(dataType: String) = if (dataType == "CHAR") s""", columnDefinition = "char"""" else ""
 
-    def buildLength(column: Column) = column.dataLength match {
-      case Some(n) if column.dataType == "CHAR" || column.dataType == "VARCHAR2" => s", length = $n"
-      case _ => ""
-    }
+    def buildLength(column: Column) =
+      if (column.dataType == "CHAR" || column.dataType == "VARCHAR2")
+        s", length = ${column.dataLength}" else ""
+
 
     def buildColumnAnnotation(column: Column) =
     s"""@Column(name = "${column.name}"${buildColumnDefinition(column.dataType)}${buildLength(column)})"""
 
     if (column.dataType == "DATE")
       s"""|${buildColumnAnnotation(column)}
-          |@Temporal(TemporalType.TIMESTAMP)""".stripMargin
+          |  @Temporal(TemporalType.TIMESTAMP)""".stripMargin
     else
       buildColumnAnnotation(column)
+  }
+
+  def buildFiledAnnotationPK(column: Column) = {
+    if (column.pkPosition.isEmpty == false)
+      s"""|@Id
+          |  ${buildFieldAnnotation(column)}""".stripMargin
+    else buildFieldAnnotation(column)
   }
 
   def buildFieldName(columnName: String) = EntityBuilder.transformToCamelCase(columnName)
@@ -33,8 +40,8 @@ object FieldBuilder {
       def buildeDefaultValueJavaCode(javaType: String, defaultValue: Option[String]) = defaultValue match {
         case Some(v) =>
           javaType match {
-            case "String" => s""" = "$v""""
-            case ("int" | "double") => s" = $v"
+            case "String" => s""" = "${v.trim.replaceAll("'","")}""""
+            case ("int" | "double") => s" = ${v.trim}"
           }
         case _ => ""
       }
@@ -55,9 +62,11 @@ object FieldBuilder {
   }
 
   def buildFieldCode(column: Column) = {
-    s"""|${buildFieldAnnotation(column)}
-        |${buildFieldJavaCode(column)}
-     """.stripMargin
+    s"""|  ${buildFiledAnnotationPK(column)}
+        |  ${buildFieldJavaCode(column)}""".stripMargin
   }
+
+  def buildFieldCodeAll(columns: List[Column]) =
+    columns.filter(_.dataType != "CLOB").foldLeft("")((str, c) => s"$str\n${buildFieldCode(c)}\n")
 
 }

@@ -3,10 +3,10 @@ package HibernateEntityGenerator.models
 case class Column(name: String,
                   dataType: String,
                   defaultValue: Option[String],
-                  dataLength: Option[Int],
+                  dataLength: Int,
                   dataPrecision: Option[Int],
                   dataScale: Option[Int],
-                  isPrimary: Boolean)
+                  pkPosition: Option[Int])
 
 case object Column {
 
@@ -14,15 +14,15 @@ case object Column {
                    dataType: String,
                    defaultValue: String,
                    dataLength: Int,
-                   isPrimary: Boolean = false) = {
+                   pkPosition: Option[Int] = None) = {
     Column(
       name = name,
       dataType = dataType,
       defaultValue = Option(defaultValue),
-      dataLength = Option(dataLength),
+      dataLength = dataLength,
       dataPrecision = None,
       dataScale = None,
-      isPrimary = isPrimary)
+      pkPosition = pkPosition)
   }
 
   def numberColumn(name: String,
@@ -30,56 +30,79 @@ case object Column {
                    dataLength: Int,
                    dataPrecision: Int,
                    dataScale: Int,
-                   isPrimary: Boolean = false) = {
+                   pkPosition: Option[Int] = None) = {
     Column(
       name = name,
       dataType = "NUMBER",
       defaultValue = Option(defaultValue),
-      dataLength = Option(dataLength),
+      dataLength = dataLength,
       dataPrecision = Option(dataPrecision),
       dataScale = Option(dataScale),
-      isPrimary = isPrimary)
+      pkPosition = pkPosition)
   }
 
   def dateColumn(name: String,
                  defaultValue: String,
-                 isPrimary: Boolean = false) = {
+                 pkPosition: Option[Int] = None) = {
     Column(
       name = name,
       dataType = "DATE",
       defaultValue = Option(defaultValue),
-      dataLength = None,
+      dataLength = 7,
       dataPrecision = None,
       dataScale = None,
-      isPrimary = isPrimary)
+      pkPosition = pkPosition)
   }
 }
 
-case class Relation(joinTable: String, columnNames: List[String])
+//case class Relation(joinTable: String, columnNames: List[String])
+
+case class RefManyToOne(columnName: String, tableName: String)
+
+case class RefOneToMany(oneTableName: String, manyTableName: String)
 
 case class Table(name: String,
                  owner: String,
+                 embeddable: Int,
                  columns: List[Column],
-                 pKeys: List[Column],
-                 embeddableTables: List[Table],
-                 isEmbeddable: Boolean,
-                 isWithKey: Boolean) {
-  require((!pKeys.isEmpty) || isEmbeddable)
-  require(!columns.isEmpty)
+                 pkColumns: List[Column],
+                 embeddedTables: List[String],
+                 manyToOne: List[RefManyToOne] = Nil,
+                 oneToMany: List[RefOneToMany] = Nil) {
+
+//  require((!pkColumns.isEmpty) || (embeddable == 1))
+//  require(!columns.isEmpty)
+
+  def isWithKey = embeddedTables.isEmpty == false
 }
 
 object Table {
 
-  def apply(name: String,
+  def createTable(name: String,
             owner: String,
             columns: List[Column],
             pKeys: List[Column]):Table =
     Table(name = name,
       owner = owner,
+      embeddable = 0,
       columns = columns,
-      pKeys = pKeys,
-      embeddableTables = List.empty,
-      isEmbeddable = false,
-      isWithKey = false)
+      pkColumns = pKeys,
+      embeddedTables = List.empty,
+      manyToOne = Nil,
+      oneToMany = Nil)
+
+  def createEmbeddableTable(name: String,
+                  owner: String,
+                  columns: List[Column],
+                  pKeys: List[Column]):Table =
+    Table(name = name,
+      owner = owner,
+      embeddable = 1,
+      columns = columns,
+      pkColumns = pKeys,
+      embeddedTables = List.empty,
+      manyToOne = Nil,
+      oneToMany = Nil)
+
 
 }
