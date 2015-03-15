@@ -40,7 +40,7 @@ object FieldBuilder {
       def buildeDefaultValueJavaCode(javaType: String, defaultValue: Option[String]) = defaultValue match {
         case Some(v) =>
           javaType match {
-            case "String" => s""" = "${v.trim.replaceAll("'","")}""""
+            case "String" => s""" = "${v.trim.replace("'","")}""""
             case ("int" | "double") => s" = ${v.trim}"
           }
         case _ => ""
