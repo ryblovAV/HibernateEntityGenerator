@@ -57,6 +57,10 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
     EntityBuilder.transformEntityName("CI_PER") should be ("perEntity")
   }
 
+  describe("define entity class name") {
+    EntityBuilder.buildEntityClassName("CI_PER_CHAR") should be ("PerCharEntity")
+  }
+
   ignore("create table with not primaryKey") {
     an [IllegalArgumentException] should be thrownBy { Table("name","owner",0,columns,List.empty,List.empty) }
   }

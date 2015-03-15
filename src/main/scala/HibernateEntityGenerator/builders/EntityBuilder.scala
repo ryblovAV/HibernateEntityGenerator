@@ -22,16 +22,18 @@ object EntityBuilder {
 
   def transformEntityName(tableName: String) = s"${getEntity(tableName)}Entity"
 
+  def buildEntityClassName(tableName: String) = transformEntityName(tableName).capitalize
+
   def addSeparator(str: String):String = if (str.length > 0) ", " else ""
 
   def buildClass(tableName: String, owner: String, isEmbeddable: Boolean) = {
     if (isEmbeddable)
       s"""|@Embeddable
-          |public class ${transformEntityName(tableName).capitalize}""".stripMargin
+          |public class ${buildEntityClassName(tableName)}""".stripMargin
     else
       s"""|@Entity
           |@Table(name = "$tableName", schema = "$owner")
-          |public class ${transformEntityName(tableName).capitalize}""".stripMargin
+          |public class ${buildEntityClassName(tableName)}""".stripMargin
 
   }
 
@@ -50,7 +52,7 @@ object EntityBuilder {
   }
 
   def buildEmbeddableCollection(tableName: String) =
-    s"  public Set<${transformEntityName(tableName).capitalize}> ${transformEntityName(tableName)}Set = new HashSet<>();"
+    s"  public Set<${buildEntityClassName(tableName)}> ${transformEntityName(tableName)}Set = new HashSet<>();"
 
   def buildEmbeddableCollectionA(owner: String, tableName: String, pkColumnName: String)  =
     s"""|  @ElementCollection

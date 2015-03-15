@@ -21,7 +21,7 @@ object MethodBuilder {
       (str, column) => str + s"""|${createEqualRow(FieldBuilder.buildFieldName(column.name),column.dataType)}""".stripMargin
     )
 
-    val entityName = EntityBuilder.transformEntityName(tableName).capitalize
+    val entityName = EntityBuilder.buildEntityClassName(tableName)
 
     s"""|  @Override
         |  public boolean equals(Object object) {
@@ -65,13 +65,13 @@ object MethodBuilder {
   }
 
   def createConstructorWithEnvId(tableName: String) = {
-    s"""|  public ${EntityBuilder.transformEntityName(tableName).capitalize}(int envId) {
+    s"""|  public ${EntityBuilder.buildEntityClassName(tableName)}(int envId) {
         |    ${EntityBuilder.getEntity(tableName)}KEntitySet.add(new ${EntityBuilder.getEntity(tableName).capitalize}KEntity(envId));
         |  }""".stripMargin
   }
 
   def createConstructor(tableName: String) = {
-    s"""|  public ${EntityBuilder.transformEntityName(tableName).capitalize}() {
+    s"""|  public ${EntityBuilder.buildEntityClassName(tableName)}() {
         |  }""".stripMargin
   }
 
