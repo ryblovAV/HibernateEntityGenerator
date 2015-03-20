@@ -8,5 +8,6 @@
 project/
 projectFilesBackup/
 target/
+src/main/resources/gen
 
 .DS_Store
