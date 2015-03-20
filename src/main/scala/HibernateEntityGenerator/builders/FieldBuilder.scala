@@ -24,8 +24,8 @@ object FieldBuilder {
       buildColumnAnnotation(column)
   }
 
-  def buildFiledAnnotationPK(column: Column) = {
-    if (column.pkPosition.isEmpty == false)
+  def buildFiledAnnotationPK(column: Column, isEmbeddable: Boolean) = {
+    if ((column.pkPosition.isEmpty == false) && (isEmbeddable == false))
       s"""|@Id
           |  ${buildFieldAnnotation(column)}""".stripMargin
     else buildFieldAnnotation(column)
@@ -61,12 +61,12 @@ object FieldBuilder {
     }
   }
 
-  def buildFieldCode(column: Column) = {
-    s"""|  ${buildFiledAnnotationPK(column)}
+  def buildFieldCode(column: Column, isEmbeddable: Boolean) = {
+    s"""|  ${buildFiledAnnotationPK(column, isEmbeddable)}
         |  ${buildFieldJavaCode(column)}""".stripMargin
   }
 
-  def buildFieldCodeAll(columns: List[Column]) =
-    columns.filter(_.dataType != "CLOB").foldLeft("")((str, c) => s"$str\n${buildFieldCode(c)}\n")
+  def buildFieldCodeAll(columns: List[Column], isEmbeddable: Boolean) =
+    columns.filter(_.dataType != "CLOB").foldLeft("")((str, c) => s"$str\n${buildFieldCode(c,isEmbeddable)}\n")
 
 }

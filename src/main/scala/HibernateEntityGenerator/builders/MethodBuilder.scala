@@ -18,7 +18,7 @@ object MethodBuilder {
   def buildEqualMethod(tableName: String, pkColumns: List[Column]) = {
 
     val s = pkColumns.foldLeft[String]("")(
-      (str, column) => str + s"""|${createEqualRow(FieldBuilder.buildFieldName(column.name),column.dataType)}""".stripMargin
+      (str, column) => str + s"""|${createEqualRow(FieldBuilder.buildFieldName(column.name),column.dataType)}""".stripMargin+"\n"
     )
 
     val entityName = EntityBuilder.buildEntityClassName(tableName)

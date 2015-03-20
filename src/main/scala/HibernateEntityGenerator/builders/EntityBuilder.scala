@@ -8,6 +8,8 @@ object EntityBuilder {
 
   val entityRegExpr = """CI_{1}(.+)""".r
 
+  val columnRegExpr = """(.+)_ID{1}""".r
+
   def transformToCamelCase(name: String) = {
     "_([a-z\\d])".r.replaceAllIn(
     name.toLowerCase(), {
@@ -23,6 +25,14 @@ object EntityBuilder {
   def transformEntityName(tableName: String) = s"${getEntity(tableName)}Entity"
 
   def buildEntityClassName(tableName: String) = transformEntityName(tableName).capitalize
+
+  def buildEntityNameByColumn(columnName: String) = columnName match {
+    case columnRegExpr(name) => transformToCamelCase(name)
+  }
+
+  def buildEntityCollectionByColumn(tableName: String, columnName: String) =
+    getEntity(tableName) +  buildEntityNameByColumn(columnName).capitalize
+
 
   def addSeparator(str: String):String = if (str.length > 0) ", " else ""
 
@@ -88,8 +98,8 @@ object EntityBuilder {
         |${if (table.pkColumns.size == 1) buildEmbeddableCollectionBlock(table.owner, table.embeddedTables, table.pkColumns(0).name) else ""}
         |${RelationBuilder.buildOneToManyAll(table.oneToMany)}
         |${RelationBuilder.buildManyToOneAll(table.manyToOne)}
-        |${FieldBuilder.buildFieldCodeAll(table.pkColumns.sortBy(_.name))}
-        |${FieldBuilder.buildFieldCodeAll(table.columns.sortBy(_.name))}
+        |${FieldBuilder.buildFieldCodeAll(table.pkColumns.sortBy(_.name),table.embeddable == 1)}
+        |${FieldBuilder.buildFieldCodeAll(table.columns.sortBy(_.name),false)}
         |
         |}""".stripMargin
   }

@@ -54,8 +54,16 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
   }
 
   describe("define entity name") {
-    EntityBuilder.transformEntityName("CI_PER") should be ("perEntity")
+    it("create entityName") {
+      EntityBuilder.transformEntityName("CI_PER") should be("perEntity")
+    }
+
+    it("create entity name by column") {
+      EntityBuilder.buildEntityNameByColumn("CHAR_PREM_ID") should be("charPrem")
+    }
   }
+
+
 
   describe("define entity class name") {
     EntityBuilder.buildEntityClassName("CI_PER_CHAR") should be ("PerCharEntity")
@@ -199,6 +207,7 @@ class GeneratorTestSuite extends FunSpec with ShouldMatchers {
                        |    if (!this.perId.equals(other.perId)) {
                        |      return false;
                        |    }
+                       |
                        |    return true;
                        |  }""".stripMargin)
     }
