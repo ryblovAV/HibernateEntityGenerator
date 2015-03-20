@@ -70,8 +70,8 @@ object MethodBuilder {
         |  }""".stripMargin
   }
 
-  def createConstructor(tableName: String) = {
-    s"""|  public ${EntityBuilder.buildEntityClassName(tableName)}() {
+  def createConstructor(tableName: String, isProtected: Boolean) = {
+    s"""|  ${if (isProtected) "protected" else "public"} ${EntityBuilder.buildEntityClassName(tableName)}() {
         |  }""".stripMargin
   }
 

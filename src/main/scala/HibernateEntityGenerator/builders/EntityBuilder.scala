@@ -84,6 +84,8 @@ object EntityBuilder {
         |import java.util.HashSet;
         |import java.util.Set;""".stripMargin
 
+  def isAddConstructorWithEnvId(table: Table) = (table.isWithKey) || (table.embeddable == 1)
+
   //TODO correct table.pkColumns(0) (if count pkColumns != 1)
   def build(table: Table, packageName: String) = {
     s"""|package $packageName;
@@ -91,8 +93,8 @@ object EntityBuilder {
         |${buildImportBlock(packageName)}
         |
         |${EntityBuilder.buildClass(tableName = table.name, owner = table.owner, isEmbeddable = table.embeddable == 1)} {
-        |${MethodBuilder.createConstructor(tableName = table.name)}
-        |${if (table.isWithKey) MethodBuilder.createConstructorWithEnvId(table.name) else ""}
+        |${MethodBuilder.createConstructor(tableName = table.name,isProtected = isAddConstructorWithEnvId(table))}
+        |${if (isAddConstructorWithEnvId(table)) MethodBuilder.createConstructorWithEnvId(table.name) else ""}
         |${MethodBuilder.buildEqualMethod(table.name,table.pkColumns)}
         |${MethodBuilder.buildHashCodeMethod(table.pkColumns)}
         |${if (table.pkColumns.size == 1) buildEmbeddableCollectionBlock(table.owner, table.embeddedTables, table.pkColumns(0).name) else ""}
