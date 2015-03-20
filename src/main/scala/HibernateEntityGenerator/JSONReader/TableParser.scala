@@ -28,7 +28,8 @@ object TableParser extends Logging{
   //OneToMany
   implicit val refOneToManyReaders: Reads[RefOneToMany] = (
     (JsPath \ "oneTableName").read[String] and
-      (JsPath \ "manyTableName").read[String]
+      (JsPath \ "manyTableName").read[String] and
+      (JsPath \ "columnName").read[String]
     )(RefOneToMany.apply _)
 
   //Table

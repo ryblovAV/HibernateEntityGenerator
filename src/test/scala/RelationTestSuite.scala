@@ -24,15 +24,15 @@ class RelationTestSuite extends FunSpec with ShouldMatchers {
       val s = RelationBuilder.buildManyToOne(RefManyToOne(columnName = "CHAR_PREM_ID", tableName = "CI_PREM")).replace(" ","")
       s should be (s"""|  @ManyToOne(cascade = CascadeType.ALL)
                        |  @JoinColumn(name = "CHAR_PREM_ID")
-                       |  public PremEntity prem;""".stripMargin.replace(" ",""))
+                       |  public PremEntity charPrem;""".stripMargin.replace(" ",""))
     }
 
     it("build one to many") {
-      val s = RelationBuilder.buildOneToMany(RefOneToMany(oneTableName = "CI_ACCT", manyTableName = "CI_SA"))
+      val s = RelationBuilder.buildOneToMany(RefOneToMany(oneTableName = "CI_PREM", manyTableName = "CI_SA", columnName = "CHAR_PREM_ID"))
       info(s)
       s should be (
-        s"""|  @OneToMany(mappedBy = "acct", cascade = CascadeType.ALL)
-            |  public Set<SaEntity> saEntitySet = new HashSet<>;""".stripMargin)
+        s"""|  @OneToMany(mappedBy = "charPrem", cascade = CascadeType.ALL)
+            |  public Set<PremEntity> saCharPremEntitySet = new HashSet<>;""".stripMargin)
     }
 
 

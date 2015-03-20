@@ -5,8 +5,8 @@ import HibernateEntityGenerator.models.{RefOneToMany, RefManyToOne}
 object RelationBuilder {
 
   def buildOneToMany(r: RefOneToMany) =
-    s"""|  @OneToMany(mappedBy = "${EntityBuilder.getEntity(r.oneTableName)}", cascade = CascadeType.ALL)
-        |  public Set<${EntityBuilder.buildEntityClassName(r.manyTableName)}> ${EntityBuilder.transformEntityName(r.manyTableName)}Set = new HashSet<>;""".stripMargin
+    s"""|  @OneToMany(mappedBy = "${EntityBuilder.buildEntityNameByColumn(r.columnName)}", cascade = CascadeType.ALL)
+        |  public Set<${EntityBuilder.buildEntityClassName(r.oneTableName)}> ${EntityBuilder.buildEntityCollectionByColumn(r.manyTableName,r.columnName)}EntitySet = new HashSet<>;""".stripMargin
 
   def buildOneToManyAll(lr: List[RefOneToMany]) =
     lr.foldLeft("")((str, r) => s"$str\n${buildOneToMany(r)}\n")
@@ -30,7 +30,7 @@ object RelationBuilder {
   def buildManyToOne(r: RefManyToOne) =
     s"""|  @ManyToOne(cascade = CascadeType.ALL)
         |${buildColumns(List(r.columnName))}
-        |  public ${EntityBuilder.getEntity(r.tableName).capitalize}Entity ${EntityBuilder.getEntity(r.tableName)};""".stripMargin
+        |  public ${EntityBuilder.getEntity(r.tableName).capitalize}Entity ${EntityBuilder.buildEntityNameByColumn(r.columnName)};""".stripMargin
 
   def buildManyToOneAll(lr: List[RefManyToOne]) =
     lr.foldLeft("")((str, r) => s"$str\n${buildManyToOne(r)}\n")
