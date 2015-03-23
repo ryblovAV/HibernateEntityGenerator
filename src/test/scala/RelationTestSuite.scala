@@ -32,7 +32,7 @@ class RelationTestSuite extends FunSpec with ShouldMatchers {
       info(s)
       s should be (
         s"""|  @OneToMany(mappedBy = "charPrem", cascade = CascadeType.ALL)
-            |  public Set<PremEntity> saCharPremEntitySet = new HashSet<>;""".stripMargin)
+            |  public Set<SaEntity> saCharPremEntitySet = new HashSet<>;""".stripMargin)
     }
 
 

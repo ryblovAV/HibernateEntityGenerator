@@ -6,7 +6,7 @@ object RelationBuilder {
 
   def buildOneToMany(r: RefOneToMany) =
     s"""|  @OneToMany(mappedBy = "${EntityBuilder.buildEntityNameByColumn(r.columnName)}", cascade = CascadeType.ALL)
-        |  public Set<${EntityBuilder.buildEntityClassName(r.oneTableName)}> ${EntityBuilder.buildEntityCollectionByColumn(r.manyTableName,r.columnName)}EntitySet = new HashSet<>;""".stripMargin
+        |  public Set<${EntityBuilder.buildEntityClassName(r.manyTableName)}> ${EntityBuilder.buildEntityCollectionByColumn(r.manyTableName,r.columnName)}EntitySet = new HashSet<>;""".stripMargin
 
   def buildOneToManyAll(lr: List[RefOneToMany]) =
     lr.foldLeft("")((str, r) => s"$str\n${buildOneToMany(r)}\n")
